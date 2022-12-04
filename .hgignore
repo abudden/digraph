@@ -1,0 +1,10 @@
+syntax: glob
+
+debug
+generated_files
+.qmake.stash
+Makefile*
+src/changeset.cpp
+publish
+output
+.git

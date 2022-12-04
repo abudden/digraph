@@ -1,0 +1,10 @@
+version: "3"
+services:
+    digraphwin:
+        build: dockerfiles/winqt
+        volumes:
+            - ./:/home/al/project
+#    digraphlinux:
+#        build: dockerfiles/linuxqt
+#        volumes:
+#            - ./:/home/al/project
