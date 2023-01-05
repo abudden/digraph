@@ -36,6 +36,7 @@ RUN apt-get update && apt-get install -y \
 		make \
 		openssl \
 		p7zip-full \
+		pandoc \
 		patch \
 		perl \
 		python2.7 \

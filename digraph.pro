@@ -24,12 +24,25 @@ CONFIG(dockerwin) {
 	# Cross-compiling for Windows via MXE and docker
 	PYTHON = python3
 
-	# TODO: tidy up the output files
-	OBJECTS_DIR = generated_files/dockerwin
-	MOC_DIR = generated_files/dockerwin
-	RCC_DIR = generated_files/dockerwin
-	UI_DIR = generated_files/dockerwin
-	DESTDIR = output/dockerwin
+	CONFIG(winstatic) {
+		OBJECTS_DIR = generated_files/winstatic
+		MOC_DIR = generated_files/winstatic
+		RCC_DIR = generated_files/winstatic
+		UI_DIR = generated_files/winstatic
+		DESTDIR = output/winstatic
+
+		CONFIG -= import_plugins
+		DEFINES += IMPORT_PLUGINS
+
+		QTPLUGIN += qwindows
+	}
+	CONFIG(winshared) {
+		OBJECTS_DIR = generated_files/winshared
+		MOC_DIR = generated_files/winshared
+		RCC_DIR = generated_files/winshared
+		UI_DIR = generated_files/winshared
+		DESTDIR = output/winshared
+	}
 }
 else {
 	win32 {
@@ -93,4 +106,3 @@ SOURCES += \
 HEADERS += \
 	inc/digraph.h \
 	inc/osspecific.h
-FORMS += ui/digraph.ui

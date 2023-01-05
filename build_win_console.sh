@@ -7,5 +7,5 @@ then
 		bash get_dlls.sh output/winconsole
 	fi
 
-	./output/winconsole/digraph.exe
+	./output/winconsole/digraph.exe "$@"
 fi

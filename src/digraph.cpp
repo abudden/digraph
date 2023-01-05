@@ -1,3 +1,24 @@
+/*
+ * Copyright (c) 2023 A. S. Budden
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 #include <QtWidgets>
 #include <QDebug>
 #include <QtNetwork>
@@ -8,12 +29,84 @@ extern const char * changeset;
 extern const char * version;
 extern const char * builddate;
 
-DigraphWindow::DigraphWindow(QDialog *parent) :
+DigraphWindow::DigraphWindow(bool useBigUi, QDialog *parent) :
 	QDialog(parent)
 {
 	os.getLastWindow();
 
-	ui.setupUi(this);
+	// If specified on the command-line, then show the big window
+	if (useBigUi) {
+		showBigUi = true;
+	}
+	else {
+		// Otherwise, check the setting in the ini file
+		showBigUi = getSetting("UI", "LargeWindow");
+	}
+
+	setupUi();
+
+	qApp->installEventFilter(this);
+
+	activateWindow();
+	QTimer::singleShot(100, this, QDialog::activateWindow);
+
+	readEntries();
+
+	if (showBigUi) {
+		showExamples();
+	}
+}
+
+void DigraphWindow::setupUi()
+{
+	QSize windowSize;
+
+	QVBoxLayout *mainLayout = new QVBoxLayout();
+	edtDigraph = new QLineEdit();
+
+	if (showBigUi) {
+		windowSize = QSize(209, 216);
+
+		QHBoxLayout *lyt1 = new QHBoxLayout();
+		lyt1->addWidget(new QLabel("Enter Digraph:"));
+		lyt1->addWidget(edtDigraph);
+		mainLayout->addLayout(lyt1);
+
+		lblExampleHeader = new QLabel();
+		mainLayout->addWidget(lblExampleHeader);
+
+		QHBoxLayout *exampleLyt = new QHBoxLayout();
+		for (int i=0;i<(EXAMPLE_LABEL_COUNT/2);i++) {
+			lblExamples[2*i] = new QLabel("ab : ");
+			lblExamples[2*i]->setAlignment(
+					Qt::AlignTrailing | Qt::AlignRight | Qt::AlignTop);
+			exampleLyt->addWidget(lblExamples[2*i]);
+
+			lblExamples[(2*i)+1] = new QLabel("a");
+			lblExamples[(2*i)+1]->setAlignment(
+					Qt::AlignLeading | Qt::AlignLeft | Qt::AlignTop);
+			exampleLyt->addWidget(lblExamples[(2*i)+1]);
+
+			//exampleLyt->addSpacerItem(new QSpacerItem(40, 20));
+		}
+
+		mainLayout->addLayout(exampleLyt);
+
+		mainLayout->addStretch(1);
+	}
+	else {
+		windowSize = QSize(94, 38);
+		mainLayout->addWidget(edtDigraph);
+	}
+
+	setLayout(mainLayout);
+
+	connect(edtDigraph, &QLineEdit::textEdited, this, &DigraphWindow::prepareDigraph);
+
+	setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint);
+	setWindowFlags(windowFlags() &(~Qt::WindowMaximizeButtonHint));
+
+	setFixedSize(windowSize);
 
 	QPoint lwc = os.getLastWindowCentre();
 	if ( ! lwc.isNull()) {
@@ -22,25 +115,64 @@ DigraphWindow::DigraphWindow(QDialog *parent) :
 		lwc.setY(lwc.y() - (s.height()/2));
 		move(lwc);
 	}
+}
 
-	setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint);
-	connect(ui.edtDigraph, &QLineEdit::textChanged, this, &DigraphWindow::prepareDigraph);
+void DigraphWindow::showExamples(QString prefix)
+{
+	QHash<QString, QString> filtered_entries;
+	static const QStringList defaultExamples = {
+		"a!", "e'", "i^", "n?",
+		"2S", "3s", "-N", "->", "<=", "=<",
+		">=", "00", "Co", "TM", "/\\", "-:", "+-",
+		"RT", "!=", "?=",
+		"1'", "/-", "/=", "SE", ".:", "OK", "XX",
+		"a*", "b*", "l*", "L*", "m*", "W*",
+		"-!", "-v", "<>", "UD", "12", "14", "DG",
+	};
 
-	qApp->installEventFilter(this);
+	for (int i=0 ; i < EXAMPLE_LABEL_COUNT; i++) {
+		lblExamples[i]->setText("");
+	}
 
-	activateWindow();
-	QTimer::singleShot(100, this, QDialog::activateWindow);
-
-	readEntries();
+	int label = 0;
+	QStringList keys;
+	if (prefix.length() == 0) {
+		// Standard examples
+		keys = defaultExamples;
+		lblExampleHeader->setText("Example Digraphs:");
+	}
+	else {
+		lblExampleHeader->setText("Available Digraphs:");
+		QString p = prefix.left(1);
+		for (auto & key : entries.keys()) {
+			if (key.left(1) == p) {
+				keys << key;
+			}
+		}
+	}
+	for (auto & key : keys) {
+		if (entries.contains(key)) {
+			lblExamples[label]->setText(
+					lblExamples[label]->text() +
+					key + " : \n");
+			lblExamples[label+1]->setText(
+					lblExamples[label+1]->text() +
+					entries[key] + "\n");
+			label += 2;
+			label %= EXAMPLE_LABEL_COUNT;
+		}
+	}
 }
 
 void DigraphWindow::copyToClipboard(QString result)
 {
-	qDebug() << "Copying to clipboard:" << result;
-	QClipboard *clipboard = QGuiApplication::clipboard();
-	qDebug() << "Existing content (to be overwritten):" << clipboard->text(QClipboard::Clipboard);
-	clipboard->setText(result, QClipboard::Clipboard);
-	qDebug() << "Clipboard contents:" << clipboard->text(QClipboard::Clipboard);
+	if ( ! os.copyToClipboard(result)) {
+		qDebug() << "Copying to clipboard:" << result;
+		QClipboard *clipboard = QGuiApplication::clipboard();
+		qDebug() << "Existing content (to be overwritten):" << clipboard->text(QClipboard::Clipboard);
+		clipboard->setText(result, QClipboard::Clipboard);
+		qDebug() << "Clipboard contents:" << clipboard->text(QClipboard::Clipboard);
+	}
 }
 
 void DigraphWindow::showVersion()
@@ -59,6 +191,7 @@ void DigraphWindow::showVersion()
 			);
 	QAbstractButton *pButtonCopy = msgBox.addButton("Copy to Clipboard", QMessageBox::YesRole);
 	msgBox.addButton("Exit", QMessageBox::NoRole);
+	msgBox.setWindowFlags(Qt::WindowStaysOnTopHint);
 	msgBox.exec();
 	if (msgBox.clickedButton() == pButtonCopy) {
 		copyToClipboard(versionInfo);
@@ -67,7 +200,11 @@ void DigraphWindow::showVersion()
 
 void DigraphWindow::prepareDigraph()
 {
-	QString enteredString = ui.edtDigraph->text();
+	QString enteredString;
+	enteredString = edtDigraph->text();
+	if (showBigUi) {
+		showExamples(enteredString);
+	}
 
 	if (enteredString.length() >= 2) {
 		QString digraph = enteredString.left(2);
@@ -78,12 +215,26 @@ void DigraphWindow::prepareDigraph()
 		}
 		else if (entries.contains(digraph)) {
 			QString result = entries[digraph];
-			copyToClipboard(result);
+			// If I call copyToClipboard just once, it works in Word, Outlook
+			// and some others, but doesn't work in notepad or web browsers.
+			// https://stackoverflow.com/questions/74687828/qclipboard-doesnt-work-if-last-application-was-notepad-or-web-browser
+			// Calling it 8 times seems to fix the issue, but I don't like it.
+			for (int i=0;i<8;i++) {
+				copyToClipboard(result);
+				QThread::msleep(5);
+			}
 			done(true);
 		}
 		else if (entries.contains(reversedDigraph)) {
 			QString result = entries[reversedDigraph];
-			copyToClipboard(result);
+			// If I call copyToClipboard just once, it works in Word, Outlook
+			// and some others, but doesn't work in notepad or web browsers.
+			// https://stackoverflow.com/questions/74687828/qclipboard-doesnt-work-if-last-application-was-notepad-or-web-browser
+			// Calling it 8 times seems to fix the issue, but I don't like it.
+			for (int i=0;i<8;i++) {
+				copyToClipboard(result);
+				QThread::msleep(5);
+			}
 			done(true);
 		}
 		else {
@@ -111,7 +262,7 @@ bool DigraphWindow::eventFilter(QObject *object, QEvent *e)
 
 void DigraphWindow::done(bool clipboardFilled)
 {
-	ui.edtDigraph->setText("");
+	edtDigraph->setText("");
 
 	if (clipboardFilled && os.hasLastWindow()) {
 		os.bringLastWindowToFront();
@@ -160,4 +311,21 @@ void DigraphWindow::readEntries()
 	}
 
 	f.close();
+}
+
+bool DigraphWindow::getSetting(QString group, QString setting, bool defaultSetting)
+{
+	bool result = defaultSetting;
+	QSettings settings(QCoreApplication::applicationDirPath() + "/config/settings.ini",
+			QSettings::IniFormat);
+
+	settings.beginGroup(group);
+
+	if (settings.contains(setting)) {
+		result = (settings.value(setting).toString().toLower() == "true");
+	}
+
+	settings.endGroup();
+
+	return result;
 }

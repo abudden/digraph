@@ -7,9 +7,8 @@ DigraphPath := "c:\path\to\digraph.exe"
 
 return
 
-; Re-map Win+J and Win+K to run digraph.exe
+; Re-map Win+K to run digraph.exe
 #k::
-#j::
 SetTitleMatchMode  2 ; window contains
 if FileExist(DigraphPath)
 {
@@ -18,3 +17,16 @@ if FileExist(DigraphPath)
 	WinWait, Digraph
 	WinActivate, Digraph
 }
+return
+
+; Re-map Win+J to run digraph.exe and show the large window
+#j::
+SetTitleMatchMode  2 ; window contains
+if FileExist(DigraphPath)
+{
+	Run, %DigraphPath% --large
+	; Wait until the window pops up, then bring it to the front
+	WinWait, Digraph
+	WinActivate, Digraph
+}
+return

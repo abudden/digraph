@@ -1,14 +1,23 @@
 #!/bin/bash
 PATH=$PATH:/opt/mxe/usr/bin
 
-MXETARGET=x86_64-w64-mingw32.shared
+for build in static shared
+do
 
-/opt/mxe/usr/${MXETARGET}/qt6/bin/qmake -o Makefile.dockerwin "CONFIG+=dockerwin" && \
-	make -f Makefile.dockerwin clean && \
-	make -f Makefile.dockerwin && \
-	dockerfiles/winqt/mxedeployqt --mxetarget=${MXETARGET} output/dockerwin && \
-	mkdir -p output/dockerwin/docs && \
-	mkdir -p output/dockerwin/config && \
-	cp -r docs/* output/dockerwin/docs && \
-	cp -r config/* output/dockerwin/config && \
-	bash zip_winrelease.sh docker
+	MXETARGET=x86_64-w64-mingw32.${build}
+
+	/opt/mxe/usr/${MXETARGET}/qt6/bin/qmake -o Makefile.win${build} "CONFIG+=dockerwin" "CONFIG+=win${build}" && \
+		make -f Makefile.win${build} clean && \
+		make -f Makefile.win${build} && \
+		dockerfiles/winqt/mxedeployqt --mxetarget=${MXETARGET} output/win${build} && \
+		mkdir -p output/win${build}/docs && \
+		mkdir -p output/win${build}/config && \
+		cp -r docs/* output/win${build}/docs && \
+		cp -r config/* output/win${build}/config && \
+		pandoc -s -o output/win${build}/README.html README.md && \
+		bash zip_winrelease.sh win${build}
+	if [ "$?" != "0" ]
+	then
+		exit 3
+	fi
+done
