@@ -66,7 +66,9 @@ To create a keyboard shortcut, there are two methods that work equally well:
   run the executable when you press the chosen key.  [An example autohotkey script is
   included in the `docs` folder][exampleautohotkey].
 
-The second option is probably a bit faster, but either should work.
+The second option is probably a bit faster, but either should work.  Autohotkey
+has the additional advantage that the script can ensure that the digraph window
+is brought into focus as soon as it appears.
 
 ## Choosing the Window Size
 

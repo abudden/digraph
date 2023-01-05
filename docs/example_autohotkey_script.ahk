@@ -12,7 +12,7 @@ return
 SetTitleMatchMode  2 ; window contains
 if FileExist(DigraphPath)
 {
-	Run, % DigraphPath
+	Run, %DigraphPath%
 	; Wait until the window pops up, then bring it to the front
 	WinWait, Digraph
 	WinActivate, Digraph

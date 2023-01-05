@@ -49,6 +49,7 @@ DigraphWindow::DigraphWindow(bool useBigUi, QDialog *parent) :
 
 	activateWindow();
 	QTimer::singleShot(100, this, QDialog::activateWindow);
+	QTimer::singleShot(200, this, QDialog::activateWindow);
 
 	readEntries();
 
@@ -103,6 +104,8 @@ void DigraphWindow::setupUi()
 
 	connect(edtDigraph, &QLineEdit::textEdited, this, &DigraphWindow::prepareDigraph);
 
+	// Not visible, but useful for autohotkey script to bring it to the front.
+	setWindowTitle("Digraph");
 	setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint);
 	setWindowFlags(windowFlags() &(~Qt::WindowMaximizeButtonHint));
 
