@@ -19,53 +19,67 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef DIGRAPHWINDOW_H
-#define DIGRAPHWINDOW_H
-
-// Must be multiple of 2
-#define EXAMPLE_LABEL_COUNT 8
-
+#include <QCoreApplication>
+#include <QApplication>
+#include <QSettings>
+#include <QDebug>
 #include <QWidget>
-#include <QDialog>
-#include <QLabel>
-#include <QLineEdit>
 
 #include "osspecific.h"
 
-class DigraphWindow : public QDialog
+OSSpecific::OSSpecific()
 {
-	Q_OBJECT
+	QSettings settings(QCoreApplication::applicationDirPath() + "/config/settings.ini",
+			QSettings::IniFormat);
 
-	public:
-		explicit DigraphWindow(bool useBigUi=false, QDialog *parent = 0);
+	settings.beginGroup("LinuxPasteCommands");
+	QStringList keys = settings.childKeys();
 
-	protected:
-		bool eventFilter(QObject *object, QEvent *e);
+	windowPastes["default"] = "^v";
 
-	public slots:
-		void prepareDigraph();
-		void sendPasteAndClose();
-		void activate();
+	for (auto & key: keys) {
+		windowPastes[key] = settings.value(key).toString();
+	}
 
-	private:
-		void readEntries();
-		void copyToClipboard(QString result);
-		void showVersion();
-		void done(bool clipboardFilled=false);
-		void quit();
-		void showExamples(QString prefix="");
-		bool getSetting(QString group, QString setting, bool defaultSetting = false);
-		int getIntegerSetting(QString group, QString section, int defaultSetting = 0);
-		bool showBigUi;
-		void setupUi();
+	settings.endGroup();
+}
 
-		QLineEdit *edtDigraph;
-		QLabel *lblExampleHeader;
-		QLabel *lblExamples[EXAMPLE_LABEL_COUNT];
+bool OSSpecific::hasLastWindow()
+{
+	return has_last_window;
+}
 
-		QMap<QString, QString> entries;
+bool OSSpecific::copyToClipboard(QString text)
+{
+	// Rely on the OS-independent code in digraph.cpp
+	(void) text;
+	return false;
+}
 
-		OSSpecific os;
-};
+void OSSpecific::clearLastWindow()
+{
+	has_last_window = false;
+	last_window_centre = QPoint(0,0);
+}
 
-#endif
+void OSSpecific::getLastWindow()
+{
+	// TODO - currently does nothing
+}
+
+void OSSpecific::bringLastWindowToFront()
+{
+	if (has_last_window) {
+		// TODO: currently does nothing
+	}
+}
+
+void OSSpecific::pasteToLastWindow()
+{
+	// TODO: Currently does nothing
+}
+
+QPoint OSSpecific::getLastWindowCentre()
+{
+	return last_window_centre;
+}

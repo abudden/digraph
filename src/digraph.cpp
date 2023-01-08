@@ -48,14 +48,20 @@ DigraphWindow::DigraphWindow(bool useBigUi, QDialog *parent) :
 	qApp->installEventFilter(this);
 
 	activateWindow();
-	QTimer::singleShot(100, this, QDialog::activateWindow);
-	QTimer::singleShot(200, this, QDialog::activateWindow);
+	QTimer::singleShot(100, this, SLOT(activate()));
+	QTimer::singleShot(200, this, SLOT(activate()));
 
 	readEntries();
 
 	if (showBigUi) {
 		showExamples();
 	}
+}
+
+void DigraphWindow::activate()
+{
+	// Simple function to make activateWindow into a slot.
+	activateWindow();
 }
 
 void DigraphWindow::setupUi()
@@ -65,8 +71,15 @@ void DigraphWindow::setupUi()
 	QVBoxLayout *mainLayout = new QVBoxLayout();
 	edtDigraph = new QLineEdit();
 
+	int fontsize = getIntegerSetting("UI", "FontSize", 8);
+	QFont labelFont = QFont();
+	labelFont.setPointSize(fontsize);
+	QApplication::setFont(labelFont);
+
 	if (showBigUi) {
-		windowSize = QSize(209, 216);
+		int lwidth = getIntegerSetting("UI", "LargeWindowWidth", 220);
+		int lheight = getIntegerSetting("UI", "LargeWindowHeight", 220);
+		windowSize = QSize(lwidth, lheight);
 
 		QHBoxLayout *lyt1 = new QHBoxLayout();
 		lyt1->addWidget(new QLabel("Enter Digraph:"));
@@ -78,6 +91,9 @@ void DigraphWindow::setupUi()
 
 		QHBoxLayout *exampleLyt = new QHBoxLayout();
 		for (int i=0;i<(EXAMPLE_LABEL_COUNT/2);i++) {
+			if (i != 0) {
+				exampleLyt->addStretch(1);
+			}
 			lblExamples[2*i] = new QLabel("ab : ");
 			lblExamples[2*i]->setAlignment(
 					Qt::AlignTrailing | Qt::AlignRight | Qt::AlignTop);
@@ -87,8 +103,6 @@ void DigraphWindow::setupUi()
 			lblExamples[(2*i)+1]->setAlignment(
 					Qt::AlignLeading | Qt::AlignLeft | Qt::AlignTop);
 			exampleLyt->addWidget(lblExamples[(2*i)+1]);
-
-			//exampleLyt->addSpacerItem(new QSpacerItem(40, 20));
 		}
 
 		mainLayout->addLayout(exampleLyt);
@@ -96,7 +110,9 @@ void DigraphWindow::setupUi()
 		mainLayout->addStretch(1);
 	}
 	else {
-		windowSize = QSize(94, 38);
+		int lwidth = getIntegerSetting("UI", "SmallWindowWidth", 80);
+		int lheight = getIntegerSetting("UI", "SmallWindowHeight", 40);
+		windowSize = QSize(lwidth, lheight);
 		mainLayout->addWidget(edtDigraph);
 	}
 
@@ -270,7 +286,7 @@ void DigraphWindow::done(bool clipboardFilled)
 	if (clipboardFilled && os.hasLastWindow()) {
 		os.bringLastWindowToFront();
 		hide();
-		QTimer::singleShot(150, this, &sendPasteAndClose);
+		QTimer::singleShot(150, this, SLOT(sendPasteAndClose));
 	}
 	else {
 		quit();
@@ -326,6 +342,31 @@ bool DigraphWindow::getSetting(QString group, QString setting, bool defaultSetti
 
 	if (settings.contains(setting)) {
 		result = (settings.value(setting).toString().toLower() == "true");
+	}
+
+	settings.endGroup();
+
+	return result;
+}
+
+int DigraphWindow::getIntegerSetting(QString group, QString setting, int defaultSetting)
+{
+	int result = defaultSetting;
+	QSettings settings(QCoreApplication::applicationDirPath() + "/config/settings.ini",
+			QSettings::IniFormat);
+
+	settings.beginGroup(group);
+
+	if (settings.contains(setting)) {
+		int value;
+		bool ok;
+		value = settings.value(setting).toInt(&ok);
+		if (ok) {
+			result = value;
+		}
+		else {
+			qDebug() << "Couldn't interpret value as integer " << group << setting << settings.value(setting);
+		}
 	}
 
 	settings.endGroup();

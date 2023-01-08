@@ -5,6 +5,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN apt-get update && apt-get install -y \
 	build-essential \
 	git \
+	libgl-dev \
 	pandoc \
 	python-is-python3 \
 	python3 \

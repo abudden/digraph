@@ -70,6 +70,7 @@ else {
 		UI_DIR = generated_files/linux
 		RCC_DIR = generated_files/linux
 		DESTDIR = output/linux
+		SOURCES += src/linux_specific.cpp
 	}
 }
 

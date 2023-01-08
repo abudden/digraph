@@ -35,6 +35,7 @@ for command in commands:
     changeset = p1.stdout.strip()
     version = p2.stdout.strip()
     have_changeset = True
+    break
 
 if not have_changeset:
     # hg wasn't found.  Try git
@@ -48,12 +49,14 @@ if not have_changeset:
     except (subprocess.CalledProcessError, FileNotFoundError):
         pass
 
-if have_changeset:
-    with open('src/changeset.cpp', 'w', encoding='utf8') as fh:
-        fh.write('const char * changeset = "' + changeset + '";\n')
-        fh.write('const char * version = "' + version + '";\n')
-        fh.write('const char * builddate = "Compiled ' +
-                dtStylish(datetime.datetime.now(), "{th} %B %Y") + '";\n')
-else:
-    print("ERROR: Could not determine changeset", file=sys.stderr)
-    sys.exit(9)
+if not have_changeset:
+    print("ERROR: Could not determine changeset, assuming dev version", file=sys.stderr)
+    changeset = 'none'
+    version = changeset
+    have_changeset = True
+
+with open('src/changeset.cpp', 'w', encoding='utf8') as fh:
+    fh.write('const char * changeset = "' + changeset + '";\n')
+    fh.write('const char * version = "' + version + '";\n')
+    fh.write('const char * builddate = "Compiled ' +
+            dtStylish(datetime.datetime.now(), "{th} %B %Y") + '";\n')
